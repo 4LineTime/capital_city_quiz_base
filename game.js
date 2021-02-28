@@ -6,7 +6,7 @@ let submitButton = document.querySelector("#submit-answer")
 let resultTextElement = document.querySelector('#result')
 let playAgainButton = document.querySelector('#play-again')
 
-let worldBankUrl = 'https://api.worldbank.org/v2/country/br?format=json'
+let worldBankUrl = "https://api.worldbank.org/v2/country/"
 
 // TODO finish the script to challenge the user about their knowledge of capital cities.
 // An array of country codes is provided in the countries.js file. 
@@ -15,42 +15,33 @@ let worldBankUrl = 'https://api.worldbank.org/v2/country/br?format=json'
 
 console.log(countriesAndCodes)  // You don't need to log countriesAndCodes - just proving it is available
 
-let countryNames = []
-
-countriesAndCodes.forEach( country => {
-
-    let countryName = country.name
-    countryNames.push(countryName)
-})
-
-console.log(countryNames)
-
-let country = randomizeCountry()
+let country
+let code 
 let newQuiz = true
 
-refreshDisplay(country, newQuiz)
 
 // TODO when the page loads, select an element at random from the countriesAndCodes array
-
-
-
-
 function randomizeCountry(){
-    let countryName = countryNames[Math.floor(Math.random()*countryNames.length)]
-
-
-    return countryName
+    let countryObj = countriesAndCodes[Math.floor(Math.random()*countriesAndCodes.length)]
+    country = countryObj["name"]
+    code = countryObj["alpha-2"]
+    
 }
 // TODO display the country's name in the randomCountryElement
 
-function refreshDisplay(countryName, newQuiz){
+function refreshDisplay(newQuiz){
+    randomizeCountry()
     if (newQuiz == true){
-        randomCountryElement.innerHTML = countryName
+        randomCountryElement.innerHTML = country
+        resultTextElement.innerHTML = `What's the capital of ${country}?`
+        userAnswerElement.value = ""
+        console.log(country, code, newQuiz )
+
+
     }
-
-
 }
 
+refreshDisplay(newQuiz)
 
 // TODO add a click event handler to the submitButton.  When the user clicks the button,
 //  * read the text from the userAnswerElement 
@@ -67,10 +58,30 @@ function refreshDisplay(countryName, newQuiz){
 submitButton.addEventListener("click",checkAnswer)
 
 function checkAnswer() {
-    let answer = userAnswerElement.innerHTML
-    
+    let answer = userAnswerElement.value
+      
+    fetch(worldBankUrl+code+"?format=json")
+    .then( response => response.json() )
+    .then( wbCountry => {
 
+        console.log(wbCountry)
+        let wbCountryCapital = wbCountry[1][0].capitalCity
+
+        let levDistance = Levenshtein.get(answer,wbCountryCapital)
+        console.log(wbCountryCapital, answer, levDistance)
+
+        if (levDistance <3){
+            resultTextElement.innerHTML = `Correct! The capital of ${country} is ${wbCountryCapital}`
+        } else {
+            resultTextElement.innerHTML = `Incorrect! The capital of ${country} is ${wbCountryCapital}, not ${answer}`
+        }
+        
+    }).catch( error => {
+        alert('oops! something went wrong')  // user friendly - most users can't do anything about a stack trace
+        console.log(error)  // for the developer to debug the app
+    })
 }
 // TODO finally, connect the play again button. Clear the user's answer, select a new random country, 
 // display the country's name, handle the user's guess. If you didn't use functions in the code you've 
-// already written, you should refactor your code to use functions to avoid writing very similar code twice. 
+// already written, you should refactor your code to use functions to avoid writing very similar code twice.
+playAgainButton.addEventListener("click", function() {refreshDisplay(newQuiz)})
